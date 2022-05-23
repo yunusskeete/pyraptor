@@ -43,14 +43,16 @@ def parse_arguments():
         "-i",
         "--input",
         type=str,
-        default="data/input/NL-gtfs",
+#         default="data/input/NL-gtfs",
+        default="/content/pyraptor/data/input/NL-gtfs",
         help="Input directory",
     )
     parser.add_argument(
         "-o",
         "--output",
         type=str,
-        default="data/output",
+#         default="data/output",
+        default="/content/pyraptor/data/output"
         help="Input directory",
     )
     parser.add_argument(
