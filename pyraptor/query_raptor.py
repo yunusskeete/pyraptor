@@ -22,7 +22,7 @@ def parse_arguments():
         "--input",
         type=str,
 #         default="data/output",
-        default="/content/pyraptor/data/output"
+        default="/content/pyraptor/data/output",
         help="Input directory",
     )
     parser.add_argument(
