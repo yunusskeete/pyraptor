@@ -56,7 +56,9 @@ def parse_arguments():
         help="Input directory",
     )
     parser.add_argument(
-        "-d", "--date", type=str, default="20210906", help="Departure date (yyyymmdd)"
+#         "-d", "--date", type=str, default="20210906", help="Departure date (yyyymmdd)"
+        "-d", "--date", type=str, default="20220517", help="Departure date (yyyymmdd)"
+
     )
     parser.add_argument("-a", "--agencies", nargs="+", default=["NS"])
     parser.add_argument("--icd", action="store_true", help="Add ICD fare(s)")
