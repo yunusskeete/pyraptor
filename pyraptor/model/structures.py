@@ -257,7 +257,7 @@ class TripStopTime:
 
     def __repr__(self):
         return (
-            "HIIIITripStopTime(trip_id={hint}{trip_id}, stopidx={0.stopidx},"
+            "TripStopTime(trip_id={hint}{trip_id}, stopidx={0.stopidx},"
             # " stop_id={0.stop.id}, dts_arr={0.dts_arr}, dts_dep={0.dts_dep}, fare={0.fare})"
             " stop_id={0.stop.id}, dts_arr={0.dts_arr}, dts_dep={0.dts_dep}, fare={0.fare}, occupancy={0.occupancy})"
         ).format(
