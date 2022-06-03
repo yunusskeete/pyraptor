@@ -242,9 +242,11 @@ class TripStopTime:
     dts_arr = attr.ib(default=attr.NOTHING) # EXAMPLE: 81960
     dts_dep = attr.ib(default=attr.NOTHING) # EXAMPLE: 82080
     fare = attr.ib(default=0.0) # EXAMPLE: 0
+    occupancy = attr.ib(default=0.0) # EXAMPLE: 0 # 03/06/2022
 
+    ### __hash__ method doesn't seem to work:
     # def __init__(self):
-    #     self.__class__.__hash__ = TripStopTime.__hash__  # <----- SOLUTION
+    #     self.__class__.__hash__ = TripStopTime.__hash__  # <----- SOLUTION (doesn't work)
 
     def __hash__(self):
         return hash((self.trip, self.stopidx))
@@ -255,8 +257,9 @@ class TripStopTime:
 
     def __repr__(self):
         return (
-            "TripStopTime(trip_id={hint}{trip_id}, stopidx={0.stopidx},"
-            " stop_id={0.stop.id}, dts_arr={0.dts_arr}, dts_dep={0.dts_dep}, fare={0.fare})"
+            "HIIIITripStopTime(trip_id={hint}{trip_id}, stopidx={0.stopidx},"
+            # " stop_id={0.stop.id}, dts_arr={0.dts_arr}, dts_dep={0.dts_dep}, fare={0.fare})"
+            " stop_id={0.stop.id}, dts_arr={0.dts_arr}, dts_dep={0.dts_dep}, fare={0.fare}, occupancy={0.occupancy})"
         ).format(
             self,
             trip_id=self.trip.id if self.trip else None,
@@ -431,10 +434,10 @@ class Trip:
         return 0 if stop_time is None else stop_time.fare
     
     ### LOOK AT STOP CLASS FIRST
-    # def get_stop_occupancy(self, depart_stop: Stop) -> int:
-    #     """Get stop occupancy from depart_stop"""
-    #     stop_occupancy = self.get_stop(depart_stop)
-    #     return 0 if stop_time is None else stop_time.occupancy
+    def get_stop_occupancy(self, depart_stop: Stop) -> int: # 03/06/2022
+        """Get stop occupancy from depart_stop"""
+        stop_occupancy: TripStopTime = self.get_stop(depart_stop)
+        return 0 if stop_occupancy is None else stop_occupancy.occupancy
 
 
 class Trips:
@@ -686,12 +689,14 @@ class Leg:
     trip: Trip
     earliest_arrival_time: int
     fare: int = 0
+    occupancy: int = 0 # 03/06/2022
     n_trips: int = 0
 
     @property
     def criteria(self):
         """Criteria"""
-        return [self.earliest_arrival_time, self.fare, self.n_trips]
+        # return [self.earliest_arrival_time, self.fare, self.n_trips]
+        return [self.earliest_arrival_time, self.fare, self.n_trips, self.occupancy]
 
     @property
     def dep(self):
@@ -705,6 +710,13 @@ class Leg:
         """Arrival time"""
         return [ # tst = TripStopTime
             tst.dts_arr for tst in self.trip.stop_times if self.to_stop == tst.stop
+        ][0]
+
+    @property # 03/06/2022
+    def occ(self):
+        """Arrival time"""
+        return [ # tst = TripStopTime
+            tst.occupancy for tst in self.trip.stop_times if self.to_stop == tst.stop
         ][0]
 
     def is_transfer(self):
@@ -750,6 +762,7 @@ class Leg:
             from_platform_code=self.from_stop.platform_code,
             to_platform_code=self.to_stop.platform_code,
             fare=self.fare,
+            occupancy=self.occupancy, # 03/06/2022
         )
 
 
@@ -757,24 +770,28 @@ class Leg:
 class Label:
     """Label
     
-    INTEGRAL TO OCCUPANCY"""
+    INTEGRAL TO OCCUPANCY
+    
+    QUESTION:
+    Are we correct in initialising occupancy to zero?
+    We could test for correct occupancy behaviour by setting occupancy to round, hence, we know what we should expect our final occupancy to be by assessing the number of rounds for a journey"""
 
     earliest_arrival_time: int
     fare: int  # total fare
     trip: Trip  # trip to take to obtain travel_time and fare
     from_stop: Stop  # stop to hop-on the trip
-    # occupancy: int  # 25/05/2022
+    occupancy: int = 0 # 03/06/2022
     n_trips: int = 0
     infinite: bool = False
 
     @property
     def criteria(self):
         """Criteria"""
-        return [self.earliest_arrival_time, self.fare, self.n_trips]
-        # return [self.earliest_arrival_time, self.fare, self.n_trips, self.occupancy]
+        # return [self.earliest_arrival_time, self.fare, self.n_trips]
+        return [self.earliest_arrival_time, self.fare, self.n_trips, self.occupancy]
 
-    def update(self, earliest_arrival_time=None, fare_addition=None, from_stop=None):
-    # def update(self, earliest_arrival_time=None, fare_addition=None, from_stop=None, occupancy_addition=None):
+    # def update(self, earliest_arrival_time=None, fare_addition=None, from_stop=None):
+    def update(self, earliest_arrival_time=None, fare_addition=None, from_stop=None, occupancy_addition=None):
         """Update earliest arrival time and add fare_addition to fare"""
         return copy(
             Label(
@@ -790,9 +807,9 @@ class Label:
 
                 from_stop=from_stop if from_stop is not None else self.from_stop,
 
-                # occupancy=self.occupancy + occupancy_addition
-                # if occupancy_addition is not None
-                # else self.occupancy
+                occupancy=self.occupancy + occupancy_addition
+                if occupancy_addition is not None
+                else self.occupancy, # 03/06/2022
 
                 n_trips=self.n_trips,
 
@@ -808,7 +825,7 @@ class Label:
                 fare=self.fare,
                 trip=trip,
                 from_stop=current_stop if self.trip != trip else self.from_stop,
-                # occupancy=self.occupancy
+                occupancy=self.occupancy, # just occupancy, not with the occupancy_addition? Handled in the Label.update method (I believe) # 03/06/2022
                 n_trips=self.n_trips + 1 if self.trip != trip else self.n_trips,
                 infinite=self.infinite,
             )
@@ -919,6 +936,12 @@ class Journey:
     def fare(self) -> float:
         """Total fare of Journey"""
         return self.legs[-1].fare
+
+    def occupancy(self) -> int:
+        """Total occupancy of Journey
+        How to inplement? Just with the number of people that you pass, or with number of people weighted by the time spent (look at Felix's weight penalty.
+        """
+        return self.legs[-1].occupancy
 
     def dep(self) -> int:
         """Departure time"""
