@@ -999,6 +999,7 @@ class Journey:
             logger.info(msg)
 
         logger.info(f"Fare: €{self.fare()}")
+        logger.info(f"Occupancy: {self.occupancy()}")
 
         msg = f"Duration: {sec2str(self.travel_time())}"
         if dep_secs:
