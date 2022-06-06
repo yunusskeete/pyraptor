@@ -266,6 +266,14 @@ class TripStopTime:
             hint="{}:".format(self.trip.hint) if self.trip and self.trip.hint else "",
         )
 
+    ###########################
+
+    # TEST THIS OUT
+
+    ###########################
+    def update_occupancy(self):
+        self.occupancy += 1
+
 
 
 class TripStopTimes:
@@ -770,10 +778,16 @@ class Leg:
 class Label:
     """Label
     
-    INTEGRAL TO OCCUPANCY
+    There is a Label for each Leg
     
     QUESTION:
     Are we correct in initialising occupancy to zero?
+
+    ANSWER:
+    NO!!!
+    The occupancy should come from the Trip.
+
+    POSSIBILITY:
     We could test for correct occupancy behaviour by setting occupancy to round, hence, we know what we should expect our final occupancy to be by assessing the number of rounds for a journey"""
 
     earliest_arrival_time: int
@@ -914,6 +928,16 @@ class Journey:
             leg
             for leg in self.legs
             if (leg.trip is not None) and (leg.from_stop.station != leg.to_stop.station)
+        ]
+        jrny = Journey(legs=legs)
+        return jrny
+
+    def get_transfer_legs(self) -> Journey:
+        """Get all transfer legs (for occupancy)"""
+        legs = [
+            leg
+            for leg in self.legs
+            if (leg.trip is not None) and (leg.from_stop.station == leg.to_stop.station)
         ]
         jrny = Journey(legs=legs)
         return jrny
