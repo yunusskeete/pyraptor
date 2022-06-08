@@ -266,12 +266,12 @@ class TripStopTime:
             hint="{}:".format(self.trip.hint) if self.trip and self.trip.hint else "",
         )
 
-    ###########################
-
-    # TEST THIS OUT
-
-    ###########################
     def update_occupancy(self):
+        """
+        When we have identified the best Legs to satisfy our journey, we reconstruct it using the reconstruct_journeys method.
+        This is the route that a passenger is assigned.
+        Hence, it is here that we cal the update_occupancy method to update the TripStopTime with an additional rider.
+        """
         self.occupancy += 1
 
 
@@ -443,7 +443,7 @@ class Trip:
     
     ### LOOK AT STOP CLASS FIRST
     def get_stop_occupancy(self, depart_stop: Stop) -> int: # 03/06/2022
-        """Get stop occupancy from depart_stop"""
+        """Get trip occupancy from depart_stop"""
         stop_occupancy: TripStopTime = self.get_stop(depart_stop)
         return 0 if stop_occupancy is None else stop_occupancy.occupancy
 
@@ -697,7 +697,27 @@ class Leg:
     trip: Trip
     earliest_arrival_time: int
     fare: int = 0
-    occupancy: int = 0 # 03/06/2022
+    #########################################################################################################
+
+    # HERE - Occupancy should be initiallised to zero once in TripStopTimes and inherited from there thereonin
+
+    #########################################################################################################
+    # occupancy: int = 0 # 03/06/2022
+    ### Initialise occupancy to the TripStopTime.occupancy (at from_stop) of the Trip associated with this leg
+
+    ### NOTE:
+    # Is this the station occupancy or the trip occupancy? Both, we will need some logic to decipher and treat differently.
+    # We need to include the station occupancy as well!!
+    # Where/when does waiting and transfers come in?
+
+    ### Wait times?:
+
+    # ### Transfer Leg:
+    # # What is the trip for a transfer leg?
+    # if from_stop.station == to_stop.station:
+    #     transfer_duration = timetable.transfers.stop_to_stop_idx[(from_stop, to_stop)].layovertime
+    #     pass
+    # occupancy: float = trip.get_stop_occupancy(from_stop)
     n_trips: int = 0
 
     @property
@@ -720,12 +740,20 @@ class Leg:
             tst.dts_arr for tst in self.trip.stop_times if self.to_stop == tst.stop
         ][0]
 
+
+    ### HERE: =================================================
+    @property
+    def occupancy(self):
+        return self.trip.get_stop_occupancy(self.from_stop)
+
     @property # 03/06/2022
-    def occ(self):
-        """Arrival time"""
-        return [ # tst = TripStopTime
-            tst.occupancy for tst in self.trip.stop_times if self.to_stop == tst.stop
-        ][0]
+    def occ(self, alpha=0.2):
+        """Occupancy
+        alpha = weight applied to trip duration"""
+        # Occupancy is weighted by the duration
+        return self.occupancy * alpha * (self.arr - self.dep)
+
+
 
     def is_transfer(self):
         """Is transfer leg"""
@@ -784,8 +812,8 @@ class Label:
     Are we correct in initialising occupancy to zero?
 
     ANSWER:
-    NO!!!
-    The occupancy should come from the Trip.
+    NO
+    We should get it from the trip, and it should be updated.??
 
     POSSIBILITY:
     We could test for correct occupancy behaviour by setting occupancy to round, hence, we know what we should expect our final occupancy to be by assessing the number of rounds for a journey"""
@@ -794,7 +822,13 @@ class Label:
     fare: int  # total fare
     trip: Trip  # trip to take to obtain travel_time and fare
     from_stop: Stop  # stop to hop-on the trip
-    occupancy: int = 0 # 03/06/2022
+    # #########################################################################################################
+
+    # # HERE - Occupancy should be initiallised to zero once in TripStopTimes and inherited from there thereonin
+
+    # #########################################################################################################
+    # # occupancy: int = 0 # 03/06/2022
+    occupancy = attr.ib(default=0) # EXAMPLE: 0 # 03/06/2022
     n_trips: int = 0
     infinite: bool = False
 
