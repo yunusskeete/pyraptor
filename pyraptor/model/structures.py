@@ -232,7 +232,7 @@ class Stations:
 class TripStopTime:
     """Trip Stop
     
-    A store of trip, stopidx, stop, arrival, departure annd fare attributes for a trip stop
+    A store of trip, stopidx, stop, arrival, departure and fare attributes for a trip stop
     
     COULD INCLUDE OCCUPANCY HERE"""
 
@@ -258,13 +258,15 @@ class TripStopTime:
     def __repr__(self):
         return (
             "TripStopTime(trip_id={hint}{trip_id}, stopidx={0.stopidx},"
-            # " stop_id={0.stop.id}, dts_arr={0.dts_arr}, dts_dep={0.dts_dep}, fare={0.fare})"
-            " stop_id={0.stop.id}, dts_arr={0.dts_arr}, dts_dep={0.dts_dep}, fare={0.fare}, occupancy={0.occupancy})"
+            " stop_id={0.stop.id}, dts_arr={0.dts_arr}, dts_dep={0.dts_dep}, fare={0.fare})"
+            ### I don't understand this and don't know why it doesn't work
+            # " stop_id={0.stop.id}, dts_arr={0.dts_arr}, dts_dep={0.dts_dep}, fare={0.fare}, occupancy={0.occupancy})"
         ).format(
             self,
             trip_id=self.trip.id if self.trip else None,
             hint="{}:".format(self.trip.hint) if self.trip and self.trip.hint else "",
         )
+
 
     def update_occupancy(self):
         """
@@ -438,14 +440,18 @@ class Trip:
         Returns:
             -   0
         """
-        stop_time = self.get_stop(depart_stop)
+        stop_time: TripStopTime = self.get_stop(depart_stop)
         return 0 if stop_time is None else stop_time.fare
     
-    ### LOOK AT STOP CLASS FIRST
     def get_stop_occupancy(self, depart_stop: Stop) -> int: # 03/06/2022
         """Get trip occupancy from depart_stop"""
-        stop_occupancy: TripStopTime = self.get_stop(depart_stop)
-        return 0 if stop_occupancy is None else stop_occupancy.occupancy
+        stop_time: TripStopTime = self.get_stop(depart_stop)
+        return 0 if stop_time is None else stop_time.occupancy
+    
+    def update_occupancy(self, depart_stop: Stop) -> int: # 03/06/2022
+        """Get TripStopTime from depart_stop and increment the occupancy by one"""
+        stop_time: TripStopTime = self.get_stop(depart_stop)
+        stop_time.update_occupancy()
 
 
 class Trips:
@@ -827,8 +833,8 @@ class Label:
     # # HERE - Occupancy should be initiallised to zero once in TripStopTimes and inherited from there thereonin
 
     # #########################################################################################################
-    # # occupancy: int = 0 # 03/06/2022
-    occupancy = attr.ib(default=0) # EXAMPLE: 0 # 03/06/2022
+    occupancy: int # 08/06/2022
+    # occupancy = attr.ib(default=0) # EXAMPLE: 0 # 03/06/2022
     n_trips: int = 0
     infinite: bool = False
 
