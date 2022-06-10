@@ -232,9 +232,10 @@ class Stations:
 class TripStopTime:
     """Trip Stop
     
-    A store of trip, stopidx, stop, arrival, departure and fare attributes for a trip stop
+    Description:
+        -   A store of trip, stopidx, stop, arrival, departure, fare and OCCUPANCY attributes for a trip stop
     
-    COULD INCLUDE OCCUPANCY HERE"""
+    """
 
     trip: Trip = attr.ib(default=attr.NOTHING) # EXAMPLE: Trip(hint=1178, stop_times=7)
     stopidx = attr.ib(default=attr.NOTHING) # EXAMPLE: 3
@@ -244,10 +245,6 @@ class TripStopTime:
     fare = attr.ib(default=0.0) # EXAMPLE: 0
     occupancy = attr.ib(default=0.0) # EXAMPLE: 0 # 03/06/2022
 
-    ### __hash__ method doesn't seem to work:
-    # def __init__(self):
-    #     self.__class__.__hash__ = TripStopTime.__hash__  # <----- SOLUTION (doesn't work)
-
     def __hash__(self):
         return hash((self.trip, self.stopidx))
 
@@ -256,23 +253,26 @@ class TripStopTime:
         return hash((self.trip, self.stopidx))
 
     def __repr__(self):
+        hint="{}:".format(self.trip.hint) if self.trip and self.trip.hint else "",
+        trip_id=self.trip.id if self.trip else None,
         return (
-            "TripStopTime(trip_id={hint}{trip_id}, stopidx={0.stopidx},"
-            " stop_id={0.stop.id}, dts_arr={0.dts_arr}, dts_dep={0.dts_dep}, fare={0.fare})"
-            ### I don't understand this and don't know why it doesn't work
-            # " stop_id={0.stop.id}, dts_arr={0.dts_arr}, dts_dep={0.dts_dep}, fare={0.fare}, occupancy={0.occupancy})"
-        ).format(
-            self,
-            trip_id=self.trip.id if self.trip else None,
-            hint="{}:".format(self.trip.hint) if self.trip and self.trip.hint else "",
+            f"TripStopTime(trip_id={hint}{trip_id}, stopidx={self.stopidx},"
+            f" stop_id={self.stop.id}, dts_arr={self.dts_arr}, dts_dep={self.dts_dep}, fare={self.fare}, occupancy={self.occupancy})"
         )
+        # return (
+        #     "TripStopTime(trip_id={hint}{trip_id}, stopidx={0.stopidx},"
+        #     " stop_id={0.stop.id}, dts_arr={0.dts_arr}, dts_dep={0.dts_dep}, fare={0.fare})"
+        # ).format(
+        #     self,
+        #     trip_id=self.trip.id if self.trip else None,
+        #     hint="{}:".format(self.trip.hint) if self.trip and self.trip.hint else "",
+        # )
 
 
     def update_occupancy(self):
         """
-        When we have identified the best Legs to satisfy our journey, we reconstruct it using the reconstruct_journeys method.
-        This is the route that a passenger is assigned.
-        Hence, it is here that we cal the update_occupancy method to update the TripStopTime with an additional rider.
+        After a journey has been assigned, we know the legs to take us from origin to destination.
+        Hence, we iterate through these legs and update the TripStopTime with an additional rider using this `update_occupancy()` method.
         """
         self.occupancy += 1
 
@@ -628,14 +628,18 @@ class Routes:
 class Transfer:
     """Transfer
     
-    Details id, from/to stop and layovertime
+    Description:
+        -   Details id, from/to stop and layovertime
+
+    TO-DO   -   Understand where this fits into the pipeline
+            -   Implement occupancy
     
-    LAYOVER TIME IS USEFUL FOR OCCUPANCY PENALTY"""
+    """
 
     id = attr.ib(default=None) # EXAMPLE - 1
     from_stop = attr.ib(default=None) # EXAMPLE - Stop(Vlissingen-3 [2324635])
     to_stop = attr.ib(default=None) # EXAMPLE - Stop(Vlissingen-1 [2324633])
-    layovertime = attr.ib(default=300) # EXAMPLE - 120
+    layovertime = attr.ib(default=300) # EXAMPLE - 120 # LAYOVER TIME IS USEFUL FOR OCCUPANCY PENALTY
 
     def __hash__(self):
         return hash(self.id)
@@ -694,7 +698,11 @@ class Transfers:
 class Leg:
     """Leg
     
-    Details from, to (Stop), Trip, earliest arrival, n_trips and fare
+    Description:
+        -   Details from, to (Stop), Trip, earliest arrival, n_trips and fare
+        -   Contains 2 occupancy-related methods:
+                1. `occupancy()` - Gets the occupancy from `self.trip`
+                2. `occupancy_cost()` - Returns the weighted sum of uccupancy and `Leg` duration
     
     MAY HELP WITH OCCUPANCY"""
 
@@ -703,27 +711,6 @@ class Leg:
     trip: Trip
     earliest_arrival_time: int
     fare: int = 0
-    #########################################################################################################
-
-    # HERE - Occupancy should be initiallised to zero once in TripStopTimes and inherited from there thereonin
-
-    #########################################################################################################
-    # occupancy: int = 0 # 03/06/2022
-    ### Initialise occupancy to the TripStopTime.occupancy (at from_stop) of the Trip associated with this leg
-
-    ### NOTE:
-    # Is this the station occupancy or the trip occupancy? Both, we will need some logic to decipher and treat differently.
-    # We need to include the station occupancy as well!!
-    # Where/when does waiting and transfers come in?
-
-    ### Wait times?:
-
-    # ### Transfer Leg:
-    # # What is the trip for a transfer leg?
-    # if from_stop.station == to_stop.station:
-    #     transfer_duration = timetable.transfers.stop_to_stop_idx[(from_stop, to_stop)].layovertime
-    #     pass
-    # occupancy: float = trip.get_stop_occupancy(from_stop)
     n_trips: int = 0
 
     @property
@@ -746,20 +733,23 @@ class Leg:
             tst.dts_arr for tst in self.trip.stop_times if self.to_stop == tst.stop
         ][0]
 
-
-    ### HERE: =================================================
     @property
     def occupancy(self):
+        """
+        QUERY       -   Why do we implement occupancy as a method rather than an attribute?
+        RESPONSE    -   Because trip occupancies may change.
+
+                    -   Is this necessary?
+                    -   We need to took at how Bags, Labels and pareto_sets use the Leg class to inform correct implementation.
+        """
         return self.trip.get_stop_occupancy(self.from_stop)
 
-    @property # 03/06/2022
-    def occ(self, alpha=0.2):
+    @property # 10/06/2022
+    def occupancy_cost(self, alpha=0.2):
         """Occupancy
-        alpha = weight applied to trip duration"""
+        alpha = weight applied to `Leg` (trip) duration"""
         # Occupancy is weighted by the duration
-        return self.occupancy * alpha * (self.arr - self.dep)
-
-
+        return self.occupancy * alpha * (self.dep - self.arr)
 
     def is_transfer(self):
         """Is transfer leg"""
@@ -1001,11 +991,15 @@ class Journey:
         """Total fare of Journey"""
         return self.legs[-1].fare
 
+    ### GET RID OF!!! 10/06/2022
     def occupancy(self) -> int:
-        """Total occupancy of Journey
-        How to inplement? Just with the number of people that you pass, or with number of people weighted by the time spent (look at Felix's weight penalty.
-        """
+        """Occupancy of last `Trip` in Journey"""
         return self.legs[-1].occupancy
+
+    # def occupancy(self) -> int:
+    def occupancy_cost(self) -> int:
+        """Total occupancy_cost of Journey"""
+        return sum([leg.occupancy_cost for leg in self.legs])
 
     def dep(self) -> int:
         """Departure time"""
@@ -1063,7 +1057,7 @@ class Journey:
             logger.info(msg)
 
         logger.info(f"Fare: €{self.fare()}")
-        logger.info(f"Occupancy: {self.occupancy()}")
+        logger.info(f"Occupancy: {self.occupancy_cost()}")
 
         msg = f"Duration: {sec2str(self.travel_time())}"
         if dep_secs:
