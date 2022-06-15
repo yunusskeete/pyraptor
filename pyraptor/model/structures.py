@@ -745,11 +745,12 @@ class Leg:
         return self.trip.get_stop_occupancy(self.from_stop)
 
     @property # 10/06/2022
-    def occupancy_cost(self, alpha=0.2):
+    def occupancy_cost(self, alpha=1):
         """Occupancy
-        alpha = weight applied to `Leg` (trip) duration"""
+        alpha = weight applied to `Leg` (trip) duration
+        NOTE: No need for alpha as we will weight `occupancy_cost` using a `defaultCostCalculator` method"""
         # Occupancy is weighted by the duration
-        return self.occupancy * alpha * (self.dep - self.arr)
+        return self.occupancy * alpha * (self.arr - self.dep) # * (self.dep - self.arr)
 
     def is_transfer(self):
         """Is transfer leg"""
@@ -1070,6 +1071,37 @@ class Journey:
     def to_list(self) -> List[Dict]:
         """Convert journey to list of legs as dict"""
         return [leg.to_dict(leg_index=idx) for idx, leg in enumerate(self.legs)]
+
+    # @property
+    def journey_criteria(self):
+        """
+        Returns:
+            # -   The `earliest_arrival_time` from the LAST leg of the journey
+            -   The journey `travel_time`
+            -   The `fare` from the LAST leg of the journey
+            -   `n_trips` from the LAST leg of the journey
+            -   `occupancy_cost` from EVERY leg of the journey
+        """
+
+        return [
+            self.travel_time(),
+            self.fare(),
+            self.number_of_trips(),
+            self.occupancy_cost(),
+        ]
+
+    def weighted_criteria(self, alpha: float=1.0, beta: float=0.1, gamma: float=0.4, delta: float=0.4):
+        """Returns a list of weighted criteria, the sum of which is the total journey cost"""
+        weights = [alpha, beta, gamma, delta]
+        weighted_criteria = [a * b for a, b in zip(self.journey_criteria(), weights)]
+
+        return weighted_criteria
+
+    def journey_cost(self):
+        """Returns a weighted sum of the journey criteria to act as total journey cost"""
+
+        return sum(self.weighted_criteria())
+
 
 def pareto_set(labels: List[Label], keep_equal=False):
     """
