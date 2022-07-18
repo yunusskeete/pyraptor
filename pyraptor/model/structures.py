@@ -53,11 +53,7 @@ class Stop:
 
     A store of id, name, station, platform_code identifiers for PLATFORMS
 
-    We shouldn't have an occupancy attribute per stop.
-    Instead, we should perform an occupancy lookup where necessary using a custom function to which we pass:
-    stop_time: TripStopTime,
-    station: TBD (from stop: Stop)
-    platform_code: TBD (from stop: Stop)
+    NOT USED for occupancy.
     """
 
     id = attr.ib(default=None) # EXAMPLE - '2427778'
@@ -82,7 +78,10 @@ class Stop:
 class Stops:
     """Stops
     
-    A collection (dictionary) of Stop class objects."""
+    A collection (dictionary) of Stop class objects.
+
+    NOT USED for occupancy.
+    """
 
     def __init__(self):
         self.set_idx = dict() # EXAMPLE - set_idx: {'2324635': Stop(Vlissingen-3 [2324635]), '2422053': Stop(Dordrecht-2 [2422053]), '2324687': Stop(Wijhe-2 [2324687]), ... }
@@ -151,7 +150,11 @@ class Stops:
 
 @attr.s(repr=False, cmp=False)
 class Station:
-    """Stop dataclass - a collection (list) of Stops class objects"""
+    """
+    Stop dataclass - a collection (list) of Stops class objects.
+
+    NOT USED for occupancy.
+    """
 
     id = attr.ib(default=None) # EXAMPLE - 'Rotterdam Centraal'
     name = attr.ib(default=None) # EXAMPLE - 'Rotterdam Centraal'
@@ -173,7 +176,11 @@ class Station:
 
 
 class Stations:
-    """Stations - a collection (Dict[common_name: str, station: Station]) of Station instances"""
+    """
+    Stations - a collection (Dict[common_name: str, station: Station]) of Station instances.
+
+    NOT USED for occupancy.
+    """
 
     def __init__(self):
         self.set_idx = dict()
@@ -230,11 +237,13 @@ class Stations:
 
 @attr.s(repr=False)
 class TripStopTime:
-    """Trip Stop
+    """
+    Trip Stop
     
     Description:
         -   A store of trip, stopidx, stop, arrival, departure, fare and OCCUPANCY attributes for a trip stop
     
+    USED for occupancy.
     """
 
     trip: Trip = attr.ib(default=attr.NOTHING) # EXAMPLE: Trip(hint=1178, stop_times=7)
@@ -279,9 +288,13 @@ class TripStopTime:
 
 
 class TripStopTimes:
-    """Trip Stop Times
+    """
+    Trip Stop Times
     
-    A collection (dict) of TripStopTime objects - used for indexing/finding trips in time range(s)"""
+    A collection (dict) of TripStopTime objects - used for indexing/finding trips in time range(s).
+
+    NOT USED for occupancy.
+    """
 
     def __init__(self):
         self.set_idx: Dict[Tuple[Trip, int], TripStopTime] = dict()
@@ -359,9 +372,13 @@ class TripStopTimes:
 
 @attr.s(repr=False, cmp=False)
 class Trip:
-    """Trip
+    """
+    Trip
     
-    Details trip id, stop_times and index for a trip"""
+    Details trip id, stop_times and index for a trip.
+
+    USED for occupancy.
+    """
 
     id = attr.ib(default=None) # EXAMPLE - 50
     stop_times = attr.ib(default=attr.Factory(list)) # EXAMPLE - [TripStopTime(trip_id=1178:50, stopidx=0, stop_id=2323599, dts_arr=78240, dts_dep=78240, fare=0), TripStopTime(trip_id=1178:50, stopidx=1, stop_id=2324474, dts_arr=79500, dts_dep=79740, fare=0), ... ]
@@ -455,9 +472,13 @@ class Trip:
 
 
 class Trips:
-    """Trips
+    """
+    Trips
     
-    A collection (dict) of Trip instances and store (int) of last index"""
+    A collection (dict) of Trip instances and store (int) of last index.
+
+    NOT USED for occupancy.
+    """
 
     def __init__(self):
         self.set_idx = dict() # EXAMPLE - 1: Trip(hint=3984, stop_times=2), 2: Trip(hint=3983, stop_times=2), 3: Trip(hint=3988, stop_times=2), 4: Trip(hint=7054, stop_times=9), 5: Trip(hint=3980, stop_times=2), ... }
@@ -494,9 +515,13 @@ class Trips:
 
 @attr.s(repr=False, cmp=False)
 class Route:
-    """Route
+    """
+    Route
     
-    A collection (list) of trips and stops, and a collection (dict) of stop orders."""
+    A collection (list) of trips and stops, and a collection (dict) of stop orders.
+    
+    NOT USED for occupancy.
+    """
 
     id = attr.ib(default=None)
     trips = attr.ib(default=attr.Factory(list))
@@ -554,10 +579,14 @@ class Route:
 
 
 class Routes:
-    """Routes
+    """
+    Routes
     
     A collection of Route class objects.
-    You can get the routes that serve any given stop."""
+    You can get the routes that serve any given stop.
+    
+    NOT USED for occupancy.
+    """
 
     def __init__(self):
         self.set_idx = dict() # EXAMPLE - {1: Route(id=1, trips=4), 2: Route(id=2, trips=5), 3: Route(id=3, trips=22), 4: Route(id=4, trips=24), 5: Route(id=5, trips=3), ... }
@@ -634,6 +663,7 @@ class Transfer:
     TO-DO   -   Understand where this fits into the pipeline
             -   Implement occupancy
     
+    NOT USED for occupancy.
     """
 
     id = attr.ib(default=None) # EXAMPLE - 1
@@ -654,7 +684,10 @@ class Transfer:
 class Transfers:
     """Transfers
     
-    A collection (dict) of idxs, stop_to_stop_idxs and last id (int)"""
+    A collection (dict) of idxs, stop_to_stop_idxs and last id (int).
+    
+    NOT USED for occupancy.
+    """
 
     def __init__(self):
         self.set_idx = dict() # EAMPLE - {1: Transfer(from_stop=Stop(Vlissingen-3 [2324635]), to_stop=Stop(Vlissingen-1 [2324633]), layovertime=120), ... }
@@ -696,7 +729,8 @@ class Transfers:
 ###############################################################################
 @dataclass
 class Leg:
-    """Leg
+    """
+    Leg
     
     Description:
         -   Details from, to (Stop), Trip, earliest arrival, n_trips and fare
@@ -704,7 +738,8 @@ class Leg:
                 1. `occupancy()` - Gets the occupancy from `self.trip`
                 2. `occupancy_cost()` - Returns the weighted sum of uccupancy and `Leg` duration
     
-    MAY HELP WITH OCCUPANCY"""
+    USED for occupancy.
+    """
 
     from_stop: Stop
     to_stop: Stop
@@ -805,15 +840,8 @@ class Label:
     
     There is a Label for each Leg
     
-    QUESTION:
-    Are we correct in initialising occupancy to zero?
-
-    ANSWER:
-    NO
-    We should get it from the trip, and it should be updated.??
-
-    POSSIBILITY:
-    We could test for correct occupancy behaviour by setting occupancy to round, hence, we know what we should expect our final occupancy to be by assessing the number of rounds for a journey"""
+    USED for occupancy.
+    """
 
     earliest_arrival_time: int
     fare: int  # total fare
@@ -882,7 +910,9 @@ class Bag:
     """
     Bag B(k,p) or route bag B_r
 
-    A collection (list) of labels
+    A collection (list) of labels.
+    
+    NOT USED for occupancy.
     """
 
     labels: List[Label] = field(default_factory=list)
@@ -921,7 +951,7 @@ class Journey:
     """
     Journey from origin to destination specified as Legs
 
-    INTEGRAL TO OCCUPANCY
+    USED for occupancy.
     """
 
     legs: List[Leg] = field(default_factory=list)
@@ -1109,6 +1139,8 @@ def pareto_set(labels: List[Label], keep_equal=False):
     :param labels: list with labels
     :keep_equal return also labels with equal criteria
     :return: list with pairwise non-dominating labels
+    
+    NOT USED for occupancy.
     """
 
     is_efficient = np.ones(len(labels), dtype=bool)
